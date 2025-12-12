@@ -1,0 +1,21 @@
+{
+  "name": "snowflake-kafka-connector",
+  "config": {
+    "connector.class": "com.snowflake.kafka.connector.SnowflakeSinkConnector",
+    "tasks.max": "1",
+    "topics": "my_topic",
+    "snowflake.topic2table.map": "my_topic:KAFKA_MESSAGES",
+    "snowflake.url.name": "AWYPQFR-HY01112.snowflakecomputing.com:443",
+    "snowflake.user.name": "KAFKA_CONNECTOR_USER",
+    "snowflake.private.key": "MIIFLTBXBgkqhkiG9w0BBQ0wSjApBgkqhkiG9w0BBQwwHAQISWB++FivJRsCAggAMAwGCCqGSIb3DQIJBQAwHQYJYIZIAWUDBAEqBBA1dORoAALVB66PG/m7JMSSBIIE0KZJYDOoYwuYeVPPq2TLF3e6agkj4hYitybIN11D/ZDCfIjtdbRiGjNIhhP/8Xvt3qJS2lfSrgvJ2I+3TXm5roZUMt8wNpJuGLiFasgBWWAX9yuzYRT7KXPPK6SIT+VcRYTa9krUWDJOKCaxXxYqKQz+1XV2UZu8U23ZEXyK1kN1acu8GLe5JG50vnohfOdlZhiZkguzLU5bmzK15PVZloVvmnp9iKVGVkI55/rJkX+Q5m7lHk0ugI2ysqOaT9NG5TMvC0sr951OTGb78/wQHR5AxXzfYNwNaGUTLt0Jn4xBSUE4NBcxNejfI2EvefSvO4C62dOW8vz0JWMWfE76qyHadE8sIG3nMvcrU4d6rz+JKQKtbGTX5CFDReTbh8FEt+yM601JH9fL06/wSABnzH+SasufwFDbeqrWaqRQ0sw2xBUokelgdqBh2TYJOCl1yiUcW8S2N/cUc0beoEUD2VJmraP26IkIf1o0ioRNH98eLSnvC/LWRZtPgQBETfa0VyaqCYZinDhJ1ppUz/bKrKyyP02DUhXEQG5uLdeMy1p9RDwRmibHw5lL2dQbrz8Df0nPjBIAeugt4Sd/TYme7DSAh5QHpCNfU1VspXxk1XG4aMb4d2/TIPb5VWPG2+DSWtiMSicfcPhcqMAHWxeyB4VsREJQOw8N8W5WqEBVC9TXFLggYRjybrQPJeXuGIhcIbqG5C7EtsQsLzkZ5OGfhEVSr9nPauprIQx2lEfcdyq3S+zeihb4Q2YRFfnLX/pOhyTirdBIy8hFqplGPeH5bhtQ8a4SHFQm+mtvcHYL3yMkZ91GxzObO65DeuQ0jYo4jknuHen/JOityqymJ6iACUZwj0uap8AK/U1oENNt3Z9Y8hhyx3D7ru8LlBxQUhZePFdI/h2Vi10VP5+YAhobuLOzdB6uO66PrAeTf4jYmB+yErBMjSguHwmd+YFGMrUXiOQyDm9t6RHgdacKAYD73l9Ggmxzu6wo/v+aN5ezNk/nVkOYQvR034peDLqyyXlFsipmPKXlV0mTsJGNzvOf+5pBhrupYtLF9GZOj+ULMsUN/6fDNC+GcZ8lxysAF3Skp4rqJJYt7ZqINpAHxPalmx5G9yIt0eMMFin+pbQ9UWY8SjO7s7lhly0MB7Iq2qhiRsC/vhah5OXz5mpb5sQj8qI+uRuL5Cwys1tlrLMTQSr3GXiu/Lg4fskLJVQAmqA1iaBaZFzfG9g2Np6t+1OwYI5ev3A158zNpDzR3nGMQwIIx3IQZRzNC2eHNYWUskIXR7MsNmMugoCzxEYoaUx/v36qDbvPP2Fs92Wnq9xA0G1QJuQpn7QLDkfIr2NhcxmVN6Whpn/SztgFx7q/+vIc354CgMt0GaNC5Z7ZXWu6z8BmGmVwkJb6JvOXj+nWcI4Cu/JhkhvSrP/16k7zkwx7rhWkXNNyCfXYcUMArl2RHcfcZC7uZOgP3+0R9YuXcwdaN53CDWiK8lyp/N61DeRbvSKT+sFAtgA1jLNt5SYAwG3DWqBgYBHlJCi6d04t5PfEuNklmwXtl96wATb/Jl+BPt9keixQ2LicFmCR90V7/HcojkfFfMUn4QxA9LHHrOQT/RFaSRdjCAZNo4SVRnrd6a20ckQ8Cxby+6zfcdtNu7It",
+    "snowflake.private.key.passphrase": "venkat",
+    "snowflake.role.name": "KAFKA_CONNECTOR_ROLE",
+    "snowflake.database.name": "KAFKA_DB",
+    "snowflake.schema.name": "KAFKA_SCHEMA",
+    "key.converter": "org.apache.kafka.connect.storage.StringConverter",
+    "value.converter": "com.snowflake.kafka.connector.records.SnowflakeJsonConverter",
+    "value.converter.schemas.enable": false,
+    "consumer.override.auto.offset.reset": "earliest" 
+ 
+  }
+}
