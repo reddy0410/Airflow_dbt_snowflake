@@ -1,0 +1,332 @@
+
+####Directory Setup
+
+# Base Kafka directory
+KAFKA_HOME=/opt/kafka
+
+# Directory for Kafka Connect plugins (Snowflake connector JAR goes here)
+sudo mkdir -p $KAFKA_HOME/plugins/snowflake
+sudo chown -R $USER:$USER $KAFKA_HOME/plugins
+
+
+####Place the Snowflake Kafka Connector JAR
+
+cd $KAFKA_HOME/plugins/snowflake
+wget https://repo1.maven.org/maven2/com/snowflake/snowflake-kafka-connector/3.4.0/snowflake-kafka-connector-3.4.0.jar
+wget https://repo1.maven.org/maven2/org/bouncycastle/bc-fips/1.0.2/bc-fips-1.0.2.jar
+wget https://repo1.maven.org/maven2/org/bouncycastle/bcpkix-fips/1.0.7/bcpkix-fips-1.0.7.jar
+wget https://repo1.maven.org/maven2/org/bouncycastle/bcutil-fips/1.0.5/bcutil-fips-1.0.5.jar
+
+Note: Make sure the version matches your Kafka version compatibility.
+
+
+####Create a private key for Snowflake authentication
+
+mkdir -p $KAFKA_HOME/keys
+
+-- generate encrypted version version of the private key.
+
+openssl genrsa 2048 | openssl pkcs8 -topk8 -v2 aes256 -inform PEM -out rsa_key.p8
+
+--generate the public key by referencing the private key
+
+openssl rsa -in rsa_key.p8 -pubout -out rsa_key.pub
+
+chmod 600 $KAFKA_HOME/keys/rsa_key.p8
+
+Note: kafka_key.p8 will be used in the Snowflake connector config.
+
+private_key.p8 → used in your Kafka connector config.
+
+public_key.pub → will be uploaded to Snowflake.
+
+
+
+
+####Kafka Connect Distributed Worker Config
+
+update plugin details in the below FILE
+/opt/kafka/config/connect-distributed.properties:
+
+plugin.path=/opt/kafka/plugins
+
+
+#### Snowflake Connector JSON
+
+/opt/kafka/config/snowflake-connector.json
+
+
+{
+  "name": "snowflake-kafka-connector",
+  "config": {
+    "connector.class": "com.snowflake.kafka.connector.SnowflakeSinkConnector",
+    "tasks.max": "1",
+    "topics": "my_topic",
+    "snowflake.topic2table.map": "my_topic:KAFKA_MESSAGES",
+    "snowflake.url.name": "AWYPQFR-HY01112.snowflakecomputing.com:443",
+    "snowflake.user.name": "KAFKA_CONNECTOR_USER",
+    "snowflake.private.key": "MIIFLTBXBgkqhkiG9w0BBQ0wSjApBgkqhkiG9w0BBQwwHAQISWB++FivJRsCAggAMAwGCCqGSIb3DQIJBQAwHQYJYIZIAWUDBAEqBBA1dORoAALVB66PG/m7JMSSBIIE0KZJYDOoYwuYeVPPq2TLF3e6agkj4hYitybIN11D/ZDCfIjtdbRiGjNIhhP/8Xvt3qJS2lfSrgvJ2I+3TXm5roZUMt8wNpJuGLiFasgBWWAX9yuzYRT7KXPPK6SIT+VcRYTa9krUWDJOKCaxXxYqKQz+1XV2UZu8U23ZEXyK1kN1acu8GLe5JG50vnohfOdlZhiZkguzLU5bmzK15PVZloVvmnp9iKVGVkI55/rJkX+Q5m7lHk0ugI2ysqOaT9NG5TMvC0sr951OTGb78/wQHR5AxXzfYNwNaGUTLt0Jn4xBSUE4NBcxNejfI2EvefSvO4C62dOW8vz0JWMWfE76qyHadE8sIG3nMvcrU4d6rz+JKQKtbGTX5CFDReTbh8FEt+yM601JH9fL06/wSABnzH+SasufwFDbeqrWaqRQ0sw2xBUokelgdqBh2TYJOCl1yiUcW8S2N/cUc0beoEUD2VJmraP26IkIf1o0ioRNH98eLSnvC/LWRZtPgQBETfa0VyaqCYZinDhJ1ppUz/bKrKyyP02DUhXEQG5uLdeMy1p9RDwRmibHw5lL2dQbrz8Df0nPjBIAeugt4Sd/TYme7DSAh5QHpCNfU1VspXxk1XG4aMb4d2/TIPb5VWPG2+DSWtiMSicfcPhcqMAHWxeyB4VsREJQOw8N8W5WqEBVC9TXFLggYRjybrQPJeXuGIhcIbqG5C7EtsQsLzkZ5OGfhEVSr9nPauprIQx2lEfcdyq3S+zeihb4Q2YRFfnLX/pOhyTirdBIy8hFqplGPeH5bhtQ8a4SHFQm+mtvcHYL3yMkZ91GxzObO65DeuQ0jYo4jknuHen/JOityqymJ6iACUZwj0uap8AK/U1oENNt3Z9Y8hhyx3D7ru8LlBxQUhZePFdI/h2Vi10VP5+YAhobuLOzdB6uO66PrAeTf4jYmB+yErBMjSguHwmd+YFGMrUXiOQyDm9t6RHgdacKAYD73l9Ggmxzu6wo/v+aN5ezNk/nVkOYQvR034peDLqyyXlFsipmPKXlV0mTsJGNzvOf+5pBhrupYtLF9GZOj+ULMsUN/6fDNC+GcZ8lxysAF3Skp4rqJJYt7ZqINpAHxPalmx5G9yIt0eMMFin+pbQ9UWY8SjO7s7lhly0MB7Iq2qhiRsC/vhah5OXz5mpb5sQj8qI+uRuL5Cwys1tlrLMTQSr3GXiu/Lg4fskLJVQAmqA1iaBaZFzfG9g2Np6t+1OwYI5ev3A158zNpDzR3nGMQwIIx3IQZRzNC2eHNYWUskIXR7MsNmMugoCzxEYoaUx/v36qDbvPP2Fs92Wnq9xA0G1QJuQpn7QLDkfIr2NhcxmVN6Whpn/SztgFx7q/+vIc354CgMt0GaNC5Z7ZXWu6z8BmGmVwkJb6JvOXj+nWcI4Cu/JhkhvSrP/16k7zkwx7rhWkXNNyCfXYcUMArl2RHcfcZC7uZOgP3+0R9YuXcwdaN53CDWiK8lyp/N61DeRbvSKT+sFAtgA1jLNt5SYAwG3DWqBgYBHlJCi6d04t5PfEuNklmwXtl96wATb/Jl+BPt9keixQ2LicFmCR90V7/HcojkfFfMUn4QxA9LHHrOQT/RFaSRdjCAZNo4SVRnrd6a20ckQ8Cxby+6zfcdtNu7It",
+    "snowflake.private.key.passphrase": "venkat",
+    "snowflake.role.name": "KAFKA_CONNECTOR_ROLE",
+    "snowflake.database.name": "KAFKA_DB",
+    "snowflake.schema.name": "KAFKA_SCHEMA",
+    "key.converter": "org.apache.kafka.connect.storage.StringConverter",
+    "value.converter": "com.snowflake.kafka.connector.records.SnowflakeJsonConverter",
+    "value.converter.schemas.enable": false,
+    "consumer.override.auto.offset.reset": "earliest" 
+ 
+  }
+}
+
+Note:Update topics, Snowflake account URL, database, schema, and user accordingly.
+
+####Systemd Service for Kafka Connect
+
+Create /etc/systemd/system/kafka-connect.service:
+
+[Unit]
+Description=Kafka Connect Distributed Service
+After=network.target
+
+[Service]
+Type=simple
+User=YOUR_USER
+ExecStart=/opt/kafka/bin/connect-distributed.sh /opt/kafka/config/connect-distributed.properties
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
+
+
+
+
+# Reload systemd and enable service
+sudo systemctl daemon-reload
+sudo systemctl enable kafka-connect
+sudo systemctl start kafka-connect
+
+# Check status
+sudo systemctl status kafka-connect
+
+
+#### Submit Snowflake Connector
+
+Once the service is running, run:
+
+curl -X POST -H "Content-Type: application/json" \
+     --data @/opt/kafka/config/snowflake-connector.json \
+     http://localhost:8083/connectors
+
+Check status:
+
+curl http://localhost:8083/connectors/snowflake-kafka-connector/status
+
+
+
+chown -R dataengineersnowflakedbt:dataengineersnowflakedbt /opt/kafka/plugins/snowflake
+chmod -R 755 /opt/kafka/plugins/snowflake
+
+pkill -f 'connect-distributed'
+
+
+
+curl -X POST -H "Content-Type: application/json" --data @<path>/<config_file>.json http://localhost:8083/connectors
+
+
+
+
+
+cd /opt/kafka/plugins/snowflake
+
+
+
+
+
+pkill -f ConnectDistributed
+sleep 2
+/opt/kafka/bin/connect-distributed.sh /opt/kafka/config/connect-distributed.properties &
+
+
+curl http://localhost:8083/connectors/snowflake-kafka-connector/status
+
+curl -X POST http://localhost:8083/connectors/snowflake-kafka-connector/tasks/0/restart
+curl -X PUT http://localhost:8083/connectors/snowflake-kafka-connector/pause
+curl -X PUT http://localhost:8083/connectors/snowflake-kafka-connector/resume
+
+
+curl -X POST \
+  http://localhost:8083/connectors/snowflake-kafka-connector/tasks/0/reset-offsets \
+  -H "Content-Type: application/json" \
+  -d '{"reset":"true"}'
+  
+curl -X POST \
+  http://localhost:8083/connectors/snowflake-kafka-connector/tasks/0/reset-offsets \
+  -H "Content-Type: application/json" \
+-d '{"reset":"true","offset":"earliest"}'
+
+
+
+curl -X PUT http://localhost:8083/connectors/snowflake-kafka-connector/resume
+
+
+
+
+
+curl -X POST -H "Content-Type: application/json" \
+     --data @/opt/kafka/config/snowflake-connector.json \
+     http://localhost:8083/connectors
+	 
+	 
+	 
+	 
+	 # Navigate to Kafka bin folder
+cd /opt/kafka
+
+# Reset offsets for the connector's group
+bin/kafka-consumer-groups.sh \
+  --bootstrap-server localhost:9092 \
+  --group snowflake-kafka-connector \
+  --reset-offsets \
+  --to-earliest \
+  --execute \
+  --all-topics
+
+
+# Stop & delete the connector
+curl -X DELETE http://localhost:8083/connectors/snowflake-kafka-connector
+
+
+
+
+--------------------------------------------------
+
+--------------------------------------------------------------------
+-- 1. Use a privileged role
+--------------------------------------------------------------------
+USE ROLE SECURITYADMIN;
+
+--------------------------------------------------------------------
+-- 2. Create Role for Kafka Connector
+--------------------------------------------------------------------
+CREATE OR REPLACE ROLE KAFKA_CONNECTOR_ROLE;
+
+--------------------------------------------------------------------
+-- 3. Create User for Kafka Connector
+-- (Private key will be added later)
+--------------------------------------------------------------------
+CREATE OR REPLACE USER KAFKA_CONNECTOR_USER
+    PASSWORD = 'your_password'
+    DEFAULT_ROLE = KAFKA_CONNECTOR_ROLE
+    MUST_CHANGE_PASSWORD = FALSE;
+
+GRANT ROLE KAFKA_CONNECTOR_ROLE TO USER KAFKA_CONNECTOR_USER;
+
+--------------------------------------------------------------------
+-- 4. Create Database and Schema used for Kafka ingestion
+-- (Skip CREATE DATABASE if it already exists)
+--------------------------------------------------------------------
+USE ROLE SYSADMIN;
+CREATE DATABASE IF NOT EXISTS KAFKA_DB;
+CREATE SCHEMA IF NOT EXISTS KAFKA_DB.KAFKA_SCHEMA;
+
+--------------------------------------------------------------------
+-- 5. Grant required privileges on DB & Schema
+--------------------------------------------------------------------
+GRANT USAGE ON DATABASE KAFKA_DB TO ROLE KAFKA_CONNECTOR_ROLE;
+GRANT USAGE ON SCHEMA KAFKA_DB.KAFKA_SCHEMA TO ROLE KAFKA_CONNECTOR_ROLE;
+
+-- Kafka connector needs to CREATE PIPE, TABLE, etc.
+GRANT CREATE TABLE ON SCHEMA KAFKA_DB.KAFKA_SCHEMA TO ROLE KAFKA_CONNECTOR_ROLE;
+GRANT CREATE STAGE ON SCHEMA KAFKA_DB.KAFKA_SCHEMA TO ROLE KAFKA_CONNECTOR_ROLE;
+GRANT CREATE PIPE ON SCHEMA KAFKA_DB.KAFKA_SCHEMA TO ROLE KAFKA_CONNECTOR_ROLE;
+
+--------------------------------------------------------------------
+-- 6. Create Target Table for Kafka Messages
+-- (Variant column recommended for Snowpipe Streaming)
+--------------------------------------------------------------------
+
+
+CREATE OR REPLACE TABLE KAFKA_DB.KAFKA_SCHEMA.KAFKA_MESSAGES (
+    RECORD VARIANT,           -- Kafka message payload
+    METADATA OBJECT,          -- Kafka metadata (offset, partition, topic)
+    LOAD_TIME TIMESTAMP_LTZ DEFAULT CURRENT_TIMESTAMP()  -- Optional
+);
+
+GRANT INSERT, SELECT ON TABLE KAFKA_DB.KAFKA_SCHEMA.KAFKA_MESSAGES 
+    TO ROLE KAFKA_CONNECTOR_ROLE;
+
+    
+GRANT INSERT, SELECT ON TABLE KAFKA_DB.KAFKA_SCHEMA.KAFKA_MESSAGES 
+    TO ROLE ACCOUNTADMIN;
+--------------------------------------------------------------------
+-- 7. OPTIONAL: Give ownership if using existing tables
+-- (Uncomment if applicable)
+--------------------------------------------------------------------
+-- GRANT OWNERSHIP ON TABLE your_existing_table TO ROLE KAFKA_CONNECTOR_ROLE;
+
+--------------------------------------------------------------------
+-- 8. OPTIONAL: Internal stage access (rarely needed)
+-- (Snowpipe Streaming does NOT require a stage)
+--------------------------------------------------------------------
+-- GRANT READ, WRITE ON STAGE your_existing_stage TO ROLE KAFKA_CONNECTOR_ROLE;
+
+--------------------------------------------------------------------
+-- 9. (IMPORTANT) Switch to USERADMIN to assign key-based auth
+--------------------------------------------------------------------
+USE ROLE USERADMIN;
+
+-- Add the PUBLIC KEY after generating it with openssl
+-- Example:
+-- ALTER USER KAFKA_CONNECTOR_USER SET RSA_PUBLIC_KEY='MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsxp5svVtINAV4ZJjeB5PSFVl7xC0eDtcD9Se1xDxUMiR9AB6h1pp80Og+9clrMS3gfUPV2U0iYkMsLApeOLzDzrdyM1VnhnC4pcI6wZ2VEMJUQJCGIKvkTY4e+StM8Sk+uxJrgFnL5uG8QbzaCtBVBwZ469w3IzVtCS28j1N5A2oLO5JAxzsteo7r9tP86ti7Q9igct6k+dVxLDrSwW523GLjzQlrXKyM2Sake3A+1CqTgsgGSo5u77HpqsvtzWIi4zs7XLCueZO8ClC14U6cjKtUWmBm/s98JQ+J2NhsmSpHhlkkYZctQpAtgj5pesaL37g+y7isUKwyP3CF+yzwwIDAQAB';
+--------------------------------------------------------------------
+ALTER USER KAFKA_CONNECTOR_USER SET RSA_PUBLIC_KEY='MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAjqRHEqSOLa5ku0iV9qj+ee4xnNTsDuAxVOaWrHwqQHCC1pV5Hb2mXg96P70K1Gho5cR6UL5RdRvmZYdQ8NAWzmPU2JL0J2Kz/OgKg5x/4xwMlIKH0ujNtyZTLALr0cN0y3VocxH3kZgKI03FLXNXO8egVquXlz7M1rQH0HJmAzWGossYoEw6snmdJ6CoYOyfM+POcqVeCB+n56xc2ylS1Z2sjhr8X5pS1NWwdI+flQQdWz2NFnLmm6WlHk4JRDXflOMJ6M2SzWjcvFXtbfAluLciV3316CZOt2f10NU66w7MCN9oap/YU9nsxVdbGaSOEwjM5Tf5PXJP8xIBKjHrMwIDAQAB';
+
+SELECT * FROM KAFKA_DB.KAFKA_SCHEMA.KAFKA_MESSAGES;
+
+select * from KAFKA_DB.KAFKA_SCHEMA.MY_TOPIC.MY_TOPIC_0;
+
+select * from  KAFKA_DB.KAFKA_SCHEMA.MY_TOPIC;
+
+USE DATABASE KAFKA_DB;
+USE SCHEMA KAFKA_SCHEMA;
+SELECT * FROM KAFKA_MESSAGES ;
+
+USE ROLE ACCOUNTADMIN;
+
+SELECT * 
+FROM INFORMATION_SCHEMA.STREAMING_INGEST_HISTORY
+WHERE TABLE_NAME='KAFKA_MESSAGES'
+ORDER BY EVENT_TIMESTAMP DESC
+LIMIT 10;
+
+SELECT *
+FROM TABLE(information_schema.copy_history(
+    table_name => 'KAFKA_MESSAGES',
+    schema_name => 'KAFKA_SCHEMA',
+    start_time => dateadd(hour, -1, current_timestamp)
+));
+
+
+
+
+SELECT *
+FROM INFORMATION_SCHEMA.TABLES
+WHERE TABLE_SCHEMA = 'KAFKA_SCHEMA'
+  AND TABLE_NAME = 'KAFKA_MESSAGES';
+
+  DROP TABLE IF EXISTS KAFKA_DB.KAFKA_SCHEMA.KAFKA_MESSAGES;
+
+use role KAFKA_CONNECTOR_ROLE;
+
+  select * from KAFKA_DB.KAFKA_SCHEMA.MY_TOPIC;
+
+  SELECT * FROM SNOWFLAKE.ACCOUNT_USAGE.SNOWPIPE_STREAMING_FILE_MIGRATION_HISTORY;
+  
+  ---------------------
+  
+  
+  source ~/airflow_project/airflow_env/bin/activate
+
+
+deactivate
